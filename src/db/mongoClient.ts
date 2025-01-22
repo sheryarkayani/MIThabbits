@@ -58,7 +58,7 @@ const habitSchema = new mongoose.Schema({
 
 // Add a transform to convert Map to object when document is converted to JSON
 habitSchema.set('toJSON', {
-  transform: (doc, ret) => {
+  transform: (_doc, ret) => {
     if (ret.entries instanceof Map) {
       ret.entries = Object.fromEntries(ret.entries);
     }

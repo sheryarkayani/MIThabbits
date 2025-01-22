@@ -14,7 +14,7 @@ export const fetchHabits = async (): Promise<Habit[]> => {
         Object.fromEntries(habit.entries) : 
         (habit.entries || {}),
       streak: habit.streak || 0,
-      chunks: habit.chunks
+      chunks: habit.chunks || undefined
     }));
   } catch (error) {
     console.error('Error fetching habits:', error);
