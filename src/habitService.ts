@@ -4,7 +4,7 @@ import { Habit } from './types';
 // Fetch all habits from MongoDB
 export const fetchHabits = async (): Promise<Habit[]> => {
   try {
-    const habits = await HabitModel.find();
+    const habits = await HabitModel.find().lean();
     return habits.map(habit => ({
       id: habit.id,
       name: habit.name,
@@ -13,12 +13,12 @@ export const fetchHabits = async (): Promise<Habit[]> => {
       entries: habit.entries instanceof Map ? 
         Object.fromEntries(habit.entries) : 
         (habit.entries || {}),
-      streak: habit.streak,
+      streak: habit.streak || 0,
       chunks: habit.chunks
     }));
   } catch (error) {
     console.error('Error fetching habits:', error);
-    return [];
+    throw error;
   }
 };
 
@@ -38,7 +38,7 @@ export const addHabit = async (habit: Habit) => {
 };
 
 // Update habit in MongoDB
-export const updateHabit = async (habit: Habit) => {
+export const updateHabit = async (habit: Habit): Promise<Habit | null> => {
   try {
     const updatedHabit = await HabitModel.findOneAndUpdate(
       { id: habit.id },
@@ -46,12 +46,20 @@ export const updateHabit = async (habit: Habit) => {
         ...habit,
         entries: new Map(Object.entries(habit.entries))
       },
-      { new: true }
+      { new: true, runValidators: true }
     );
-    return updatedHabit;
+    
+    if (!updatedHabit) {
+      throw new Error('Habit not found');
+    }
+
+    return {
+      ...updatedHabit.toJSON(),
+      entries: Object.fromEntries(updatedHabit.entries)
+    } as Habit;
   } catch (error) {
     console.error('Error updating habit:', error);
-    return null;
+    throw error;
   }
 };
 

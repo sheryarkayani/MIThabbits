@@ -49,10 +49,21 @@ const habitSchema = new mongoose.Schema({
   entries: {
     type: Map,
     of: String,
-    default: new Map()
+    default: new Map(),
+    required: true
   },
   streak: { type: Number, default: 0 },
   chunks: { type: Number, required: false }
+});
+
+// Add a transform to convert Map to object when document is converted to JSON
+habitSchema.set('toJSON', {
+  transform: (doc, ret) => {
+    if (ret.entries instanceof Map) {
+      ret.entries = Object.fromEntries(ret.entries);
+    }
+    return ret;
+  }
 });
 
 export const HabitModel = mongoose.model('Habit', habitSchema); 
