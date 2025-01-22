@@ -12,7 +12,10 @@ const isHabitCompleted = (habit: Habit, date: string, value?: string): boolean =
 export default function MITMissionTracker() {
   const [habits, setHabits] = useState<Habit[]>([]);
   const [currentDate] = useState(new Date());
-  const [dbStatus, setDbStatus] = useState({ isConnected: false, error: null });
+  const [dbStatus, setDbStatus] = useState<{ isConnected: boolean; error: Error | null }>({ 
+    isConnected: false, 
+    error: null 
+  });
   const { toast } = useToast();
 
   useEffect(() => {

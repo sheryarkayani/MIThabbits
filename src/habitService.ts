@@ -10,7 +10,9 @@ export const fetchHabits = async (): Promise<Habit[]> => {
       name: habit.name,
       goal: habit.goal,
       unit: habit.unit,
-      entries: Object.fromEntries(habit.entries),
+      entries: habit.entries instanceof Map ? 
+        Object.fromEntries(habit.entries) : 
+        (habit.entries || {}),
       streak: habit.streak,
       chunks: habit.chunks
     }));

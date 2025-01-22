@@ -42,16 +42,17 @@ export const checkConnection = () => {
 
 // Create Habit Schema
 const habitSchema = new mongoose.Schema({
-  id: String,
-  name: String,
-  goal: String,
-  unit: String,
+  id: { type: String, required: true },
+  name: { type: String, required: true },
+  goal: { type: String, required: true },
+  unit: { type: String, required: true },
   entries: {
     type: Map,
-    of: String
+    of: String,
+    default: new Map()
   },
-  streak: Number,
-  chunks: Number
+  streak: { type: Number, default: 0 },
+  chunks: { type: Number, required: false }
 });
 
 export const HabitModel = mongoose.model('Habit', habitSchema); 

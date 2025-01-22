@@ -3,7 +3,7 @@ export interface Habit {
   name: string;
   goal: string;
   unit: string;
-  entries: { [date: string]: string };
+  entries: { [key: string]: string };
   streak: number;
   chunks?: number;
 }
