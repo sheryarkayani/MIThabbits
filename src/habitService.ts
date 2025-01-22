@@ -1,42 +1,63 @@
-import { supabase } from './supabaseClient';
+import { HabitModel } from './db/mongoClient';
 import { Habit } from './types';
 
-// Fetch all habits from Supabase
+// Fetch all habits from MongoDB
 export const fetchHabits = async (): Promise<Habit[]> => {
-  const { data, error } = await supabase.from('habits').select('*');
-  if (error) {
-    console.error('Error fetching habits:', error.message);
+  try {
+    const habits = await HabitModel.find();
+    return habits.map(habit => ({
+      id: habit.id,
+      name: habit.name,
+      goal: habit.goal,
+      unit: habit.unit,
+      entries: Object.fromEntries(habit.entries),
+      streak: habit.streak,
+      chunks: habit.chunks
+    }));
+  } catch (error) {
+    console.error('Error fetching habits:', error);
     return [];
   }
-  return data;
 };
 
-// Add a new habit to Supabase
+// Add a new habit to MongoDB
 export const addHabit = async (habit: Habit) => {
-  const { data, error } = await supabase.from('habits').insert([habit]);
-  if (error) {
-    console.error('Error adding habit:', error.message);
+  try {
+    const newHabit = new HabitModel({
+      ...habit,
+      entries: new Map(Object.entries(habit.entries))
+    });
+    const savedHabit = await newHabit.save();
+    return savedHabit;
+  } catch (error) {
+    console.error('Error adding habit:', error);
     return null;
   }
-  return data;
 };
 
-// Update habit in Supabase
+// Update habit in MongoDB
 export const updateHabit = async (habit: Habit) => {
-  const { data, error } = await supabase
-    .from('habits')
-    .update(habit)
-    .eq('id', habit.id);
-  if (error) {
-    console.error('Error updating habit:', error.message);
+  try {
+    const updatedHabit = await HabitModel.findOneAndUpdate(
+      { id: habit.id },
+      {
+        ...habit,
+        entries: new Map(Object.entries(habit.entries))
+      },
+      { new: true }
+    );
+    return updatedHabit;
+  } catch (error) {
+    console.error('Error updating habit:', error);
+    return null;
   }
-  return data;
 };
 
-// Delete habit from Supabase
+// Delete habit from MongoDB
 export const deleteHabit = async (id: string) => {
-  const { error } = await supabase.from('habits').delete().eq('id', id);
-  if (error) {
-    console.error('Error deleting habit:', error.message);
+  try {
+    await HabitModel.deleteOne({ id });
+  } catch (error) {
+    console.error('Error deleting habit:', error);
   }
 };
