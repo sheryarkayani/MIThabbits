@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { fetchHabits, updateHabit } from './habitService';
 import { Habit } from './types';
 import { useToast } from '../src/components/ui/use-toast';
-import { connectDB } from './db/mongoClient';
+import { connectDB, checkConnection } from './db/mongoClient';
 
 const isHabitCompleted = (habit: Habit, date: string, value?: string): boolean => {
   const checkValue = value !== undefined ? value : habit.entries[date];
@@ -12,20 +12,58 @@ const isHabitCompleted = (habit: Habit, date: string, value?: string): boolean =
 export default function MITMissionTracker() {
   const [habits, setHabits] = useState<Habit[]>([]);
   const [currentDate] = useState(new Date());
+  const [dbStatus, setDbStatus] = useState({ isConnected: false, error: null });
   const { toast } = useToast();
 
   useEffect(() => {
-    connectDB();
-  }, []);
-
-  useEffect(() => {
-    const loadHabits = async () => {
-      const data = await fetchHabits();
-      setHabits(data);
+    const initDB = async () => {
+      try {
+        await connectDB();
+        const connection = checkConnection();
+        setDbStatus({ isConnected: connection.isConnected, error: null });
+        
+        // Only fetch habits if connected
+        if (connection.isConnected) {
+          const data = await fetchHabits();
+          setHabits(data);
+        }
+      } catch (error) {
+        console.error('Database connection error:', error);
+        setDbStatus({ isConnected: false, error: error as Error });
+        toast({
+          title: "Database Connection Error",
+          description: "Failed to connect to the database. Please try again later.",
+          duration: 5000,
+        });
+      }
     };
 
-    loadHabits();
-  }, []);
+    initDB();
+  }, [toast]);
+
+  // Add connection status display
+  if (dbStatus.error) {
+    return (
+      <div className="p-4 text-center">
+        <div className="text-red-500 mb-4">
+          Failed to connect to database. Please check your connection and try again.
+        </div>
+        <div className="text-sm text-gray-500">
+          Error: {dbStatus.error.message}
+        </div>
+      </div>
+    );
+  }
+
+  if (!dbStatus.isConnected) {
+    return (
+      <div className="p-4 text-center">
+        <div className="text-yellow-500">
+          Connecting to database...
+        </div>
+      </div>
+    );
+  }
 
   const updateHabitProgress = async (habitIndex: number, date: string, value: string) => {
     const updatedHabits = [...habits];

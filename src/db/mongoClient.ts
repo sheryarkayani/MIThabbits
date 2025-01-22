@@ -5,14 +5,39 @@ dotenv.config();
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/mit-tracker';
 
+let isConnected = false;
+
 export const connectDB = async () => {
+  if (isConnected) {
+    console.log('Using existing MongoDB connection');
+    return;
+  }
+
   try {
-    await mongoose.connect(MONGODB_URI);
+    if (!MONGODB_URI) {
+      throw new Error('MONGODB_URI is not defined in environment variables');
+    }
+
+    const options = {
+      serverSelectionTimeoutMS: 5000, // Timeout after 5s instead of 30s
+    };
+
+    await mongoose.connect(MONGODB_URI, options);
+    isConnected = true;
     console.log('MongoDB connected successfully');
   } catch (error) {
+    isConnected = false;
     console.error('MongoDB connection error:', error);
-    process.exit(1);
+    throw error; // Re-throw to handle it in the component
   }
+};
+
+export const checkConnection = () => {
+  return {
+    isConnected,
+    readyState: mongoose.connection.readyState
+    // 0 = disconnected, 1 = connected, 2 = connecting, 3 = disconnecting
+  };
 };
 
 // Create Habit Schema
