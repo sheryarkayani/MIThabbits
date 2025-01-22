@@ -5,5 +5,5 @@ export interface Habit {
   unit: string;
   entries: { [key: string]: string };
   streak: number;
-  chunks?: number;
+  chunks?: number | undefined;
 }
