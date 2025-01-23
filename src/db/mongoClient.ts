@@ -1,12 +1,23 @@
-import mongoose from 'mongoose';
+import mongoose, { Schema } from 'mongoose';
 import dotenv from 'dotenv';
-import { Habit } from './types';
+import { Habit } from '../types';
 
 dotenv.config();
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/mit-tracker';
 
 let isConnected = false;
+
+const habitSchema = new Schema<Habit>({
+  name: { type: String, required: true },
+  goal: { type: String, required: true },
+  unit: { type: String, required: true },
+  entries: { type: Map, of: String, default: new Map() },
+  streak: { type: Number, default: 0 },
+  chunks: { type: Number, required: false }
+});
+
+export const HabitModel = mongoose.models.Habit || mongoose.model<Habit>('Habit', habitSchema);
 
 export const connectDB = async () => {
   if (isConnected) {
@@ -36,34 +47,6 @@ export const checkConnection = () => {
     // 0 = disconnected, 1 = connected, 2 = connecting, 3 = disconnecting
   };
 };
-
-// Create Habit Schema
-const habitSchema = new mongoose.Schema({
-  id: { type: String, required: true },
-  name: { type: String, required: true },
-  goal: { type: String, required: true },
-  unit: { type: String, required: true },
-  entries: {
-    type: Map,
-    of: String,
-    default: new Map(),
-    required: true
-  },
-  streak: { type: Number, default: 0 },
-  chunks: { type: Number, required: false }
-});
-
-// Add a transform to convert Map to object when document is converted to JSON
-habitSchema.set('toJSON', {
-  transform: (_doc, ret) => {
-    if (ret.entries instanceof Map) {
-      ret.entries = Object.fromEntries(ret.entries);
-    }
-    return ret;
-  }
-});
-
-export const HabitModel = mongoose.model('Habit', habitSchema);
 
 // Add a new function to initialize the database with default habits if empty
 export const initializeDefaultHabits = async (defaultHabits: Habit[]) => {

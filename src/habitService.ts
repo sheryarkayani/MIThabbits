@@ -6,7 +6,7 @@ export const fetchHabits = async (): Promise<Habit[]> => {
   try {
     const habits = await HabitModel.find().lean();
     return habits.map(habit => ({
-      id: habit.id,
+      id: habit._id.toString(),
       name: habit.name,
       goal: habit.goal,
       unit: habit.unit,
@@ -14,7 +14,7 @@ export const fetchHabits = async (): Promise<Habit[]> => {
         Object.fromEntries(habit.entries) : 
         (habit.entries || {}),
       streak: habit.streak || 0,
-      chunks: habit.chunks
+      chunks: habit.chunks || undefined
     }));
   } catch (error) {
     console.error('Error fetching habits:', error);
@@ -40,15 +40,19 @@ export const addHabit = async (habit: Habit) => {
 // Update habit in MongoDB
 export const updateHabit = async (habit: Habit): Promise<Habit | null> => {
   try {
-    const updatedHabit = await HabitModel.findOneAndUpdate(
-      { id: habit.id },
+    const updatedHabit = await HabitModel.findByIdAndUpdate(
+      habit.id,
       {
         $set: {
-          ...habit,
-          entries: new Map(Object.entries(habit.entries))
+          name: habit.name,
+          goal: habit.goal,
+          unit: habit.unit,
+          entries: habit.entries,
+          streak: habit.streak,
+          chunks: habit.chunks
         }
       },
-      { new: true, upsert: true, runValidators: true }
+      { new: true, runValidators: true }
     );
     
     if (!updatedHabit) {
@@ -56,9 +60,16 @@ export const updateHabit = async (habit: Habit): Promise<Habit | null> => {
     }
 
     return {
-      ...updatedHabit.toObject(),
-      entries: Object.fromEntries(updatedHabit.entries)
-    } as Habit;
+      id: updatedHabit._id.toString(),
+      name: updatedHabit.name,
+      goal: updatedHabit.goal,
+      unit: updatedHabit.unit,
+      entries: updatedHabit.entries instanceof Map ? 
+        Object.fromEntries(updatedHabit.entries) : 
+        updatedHabit.entries,
+      streak: updatedHabit.streak,
+      chunks: updatedHabit.chunks
+    };
   } catch (error) {
     console.error('Error updating habit:', error);
     throw new Error('Failed to update habit in database');

@@ -2,8 +2,7 @@ import { useState, useEffect } from "react";
 import { fetchHabits, updateHabit } from './habitService';
 import { Habit } from './types';
 import { useToast } from './components/ui/use-toast';
-import { connectDB, initializeDefaultHabits } from './db/mongoClient';
-import { initialHabits } from './data';
+import { connectDB } from './db/mongoClient';
 
 const isHabitCompleted = (habit: Habit, date: string, value?: string): boolean => {
   const checkValue = value !== undefined ? value : habit.entries[date];
@@ -12,7 +11,8 @@ const isHabitCompleted = (habit: Habit, date: string, value?: string): boolean =
 
 export default function MITMissionTracker() {
   const [habits, setHabits] = useState<Habit[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isHabitCompleted, setIsHabitCompleted] = useState<boolean>(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -20,7 +20,6 @@ export default function MITMissionTracker() {
       try {
         setIsLoading(true);
         await connectDB();
-        await initializeDefaultHabits(initialHabits);
         const data = await fetchHabits();
         setHabits(data);
       } catch (error) {

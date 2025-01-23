@@ -1,13 +1,22 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-import dotenv from 'dotenv';
-
-dotenv.config();
+import path from 'path';
 
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
-  define: {
-    'process.env.MONGODB_URI': JSON.stringify(process.env.MONGODB_URI),
+  build: {
+    outDir: 'dist',
+    sourcemap: true,
+    emptyOutDir: true
   },
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './src')
+    }
+  },
+  server: {
+    port: 3000,
+    host: true
+  }
 });
