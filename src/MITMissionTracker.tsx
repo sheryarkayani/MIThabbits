@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { fetchHabits, updateHabit } from './habitService';
 import { Habit } from './types';
-import { useToast } from '../src/components/ui/use-toast';
-import { connectDB, checkConnection } from './db/mongoClient';
+import { useToast } from './components/ui/use-toast';
+import { connectDB, initializeDefaultHabits } from './db/mongoClient';
+import { initialHabits } from './data';
 
 const isHabitCompleted = (habit: Habit, date: string, value?: string): boolean => {
   const checkValue = value !== undefined ? value : habit.entries[date];
@@ -11,84 +12,71 @@ const isHabitCompleted = (habit: Habit, date: string, value?: string): boolean =
 
 export default function MITMissionTracker() {
   const [habits, setHabits] = useState<Habit[]>([]);
-  const [currentDate] = useState(new Date());
-  const [dbStatus, setDbStatus] = useState<{ isConnected: boolean; error: Error | null }>({ 
-    isConnected: false, 
-    error: null 
-  });
+  const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
   useEffect(() => {
-    const initDB = async () => {
+    const initializeDB = async () => {
       try {
+        setIsLoading(true);
         await connectDB();
-        const connection = checkConnection();
-        setDbStatus({ isConnected: connection.isConnected, error: null });
-        
-        // Only fetch habits if connected
-        if (connection.isConnected) {
-          const data = await fetchHabits();
-          setHabits(data);
-        }
+        await initializeDefaultHabits(initialHabits);
+        const data = await fetchHabits();
+        setHabits(data);
       } catch (error) {
-        console.error('Database connection error:', error);
-        setDbStatus({ isConnected: false, error: error as Error });
+        console.error('Error initializing database:', error);
         toast({
-          title: "Database Connection Error",
-          description: "Failed to connect to the database. Please try again later.",
+          title: "Database Error",
+          description: "Failed to connect to database. Please try again later.",
           duration: 5000,
         });
+      } finally {
+        setIsLoading(false);
       }
     };
 
-    initDB();
+    initializeDB();
   }, [toast]);
 
-  // Add connection status display
-  if (dbStatus.error) {
-    return (
-      <div className="p-4 text-center">
-        <div className="text-red-500 mb-4">
-          Failed to connect to database. Please check your connection and try again.
-        </div>
-        <div className="text-sm text-gray-500">
-          Error: {dbStatus.error.message}
-        </div>
-      </div>
-    );
-  }
-
-  if (!dbStatus.isConnected) {
-    return (
-      <div className="p-4 text-center">
-        <div className="text-yellow-500">
-          Connecting to database...
-        </div>
-      </div>
-    );
-  }
-
   const updateHabitProgress = async (habitIndex: number, date: string, value: string) => {
-    const updatedHabits = [...habits];
-    const habit = updatedHabits[habitIndex];
-    const prevValue = habit.entries[date];
-    habit.entries[date] = value;
+    try {
+      const updatedHabits = [...habits];
+      const habit = { ...updatedHabits[habitIndex] };
+      const prevValue = habit.entries[date];
+      
+      // Update entries
+      habit.entries = {
+        ...habit.entries,
+        [date]: value
+      };
 
-    if (isHabitCompleted(habit, date) && !isHabitCompleted(habit, date, prevValue)) {
-      habit.streak++;
-      if (habit.streak % 7 === 0) {
+      // Update streak
+      if (value && !prevValue) {
+        habit.streak++;
+      } else if (!value && prevValue) {
+        habit.streak = Math.max(0, habit.streak - 1);
+      }
+
+      // Save to database
+      const updatedHabit = await updateHabit(habit);
+      if (updatedHabit) {
+        updatedHabits[habitIndex] = updatedHabit;
+        setHabits(updatedHabits);
+        
         toast({
-          title: "Achievement Unlocked!",
-          description: `You've maintained a 7-day streak for ${habit.name}!`,
-          duration: 5000,
+          title: "Success",
+          description: "Habit progress updated successfully",
+          duration: 3000,
         });
       }
-    } else if (!isHabitCompleted(habit, date) && isHabitCompleted(habit, date, prevValue)) {
-      habit.streak = 0;
+    } catch (error) {
+      console.error('Error updating habit:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update habit. Please try again.",
+        duration: 5000,
+      });
     }
-
-    setHabits(updatedHabits);
-    await updateHabit(habit);
   };
 
   const saveHabits = async () => {
@@ -113,10 +101,10 @@ export default function MITMissionTracker() {
               className="border rounded px-2 py-1"
               onChange={(e) => updateHabitProgress(
                 habits.indexOf(habit),
-                currentDate.toISOString().split('T')[0],
+                new Date().toISOString().split('T')[0],
                 e.target.value
               )}
-              value={habit.entries[currentDate.toISOString().split('T')[0]] || ''}
+              value={habit.entries[new Date().toISOString().split('T')[0]] || ''}
             />
           </div>
           <div className="mt-2 text-sm text-gray-600">

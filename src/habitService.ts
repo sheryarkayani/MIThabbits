@@ -14,11 +14,11 @@ export const fetchHabits = async (): Promise<Habit[]> => {
         Object.fromEntries(habit.entries) : 
         (habit.entries || {}),
       streak: habit.streak || 0,
-      chunks: habit.chunks || undefined
+      chunks: habit.chunks
     }));
   } catch (error) {
     console.error('Error fetching habits:', error);
-    throw error;
+    throw new Error('Failed to fetch habits from database');
   }
 };
 
@@ -43,10 +43,12 @@ export const updateHabit = async (habit: Habit): Promise<Habit | null> => {
     const updatedHabit = await HabitModel.findOneAndUpdate(
       { id: habit.id },
       {
-        ...habit,
-        entries: new Map(Object.entries(habit.entries))
+        $set: {
+          ...habit,
+          entries: new Map(Object.entries(habit.entries))
+        }
       },
-      { new: true, runValidators: true }
+      { new: true, upsert: true, runValidators: true }
     );
     
     if (!updatedHabit) {
@@ -54,12 +56,12 @@ export const updateHabit = async (habit: Habit): Promise<Habit | null> => {
     }
 
     return {
-      ...updatedHabit.toJSON(),
+      ...updatedHabit.toObject(),
       entries: Object.fromEntries(updatedHabit.entries)
     } as Habit;
   } catch (error) {
     console.error('Error updating habit:', error);
-    throw error;
+    throw new Error('Failed to update habit in database');
   }
 };
 

@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
+import { Habit } from './types';
 
 dotenv.config();
 
@@ -18,17 +19,13 @@ export const connectDB = async () => {
       throw new Error('MONGODB_URI is not defined in environment variables');
     }
 
-    const options = {
-      serverSelectionTimeoutMS: 5000, // Timeout after 5s instead of 30s
-    };
-
-    await mongoose.connect(MONGODB_URI, options);
+    await mongoose.connect(MONGODB_URI);
     isConnected = true;
     console.log('MongoDB connected successfully');
   } catch (error) {
     isConnected = false;
     console.error('MongoDB connection error:', error);
-    throw error; // Re-throw to handle it in the component
+    throw error;
   }
 };
 
@@ -66,4 +63,22 @@ habitSchema.set('toJSON', {
   }
 });
 
-export const HabitModel = mongoose.model('Habit', habitSchema); 
+export const HabitModel = mongoose.model('Habit', habitSchema);
+
+// Add a new function to initialize the database with default habits if empty
+export const initializeDefaultHabits = async (defaultHabits: Habit[]) => {
+  try {
+    const count = await HabitModel.countDocuments();
+    if (count === 0) {
+      await HabitModel.insertMany(
+        defaultHabits.map(habit => ({
+          ...habit,
+          entries: new Map(Object.entries(habit.entries))
+        }))
+      );
+      console.log('Default habits initialized');
+    }
+  } catch (error) {
+    console.error('Error initializing default habits:', error);
+  }
+}; 
