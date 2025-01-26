@@ -1,10 +1,14 @@
 import { useState, useEffect } from "react";
-import { fetchHabits, updateHabit } from './habitService';
-import { Habit } from './types';
-import { useToast } from './components/ui/use-toast';
-import { connectDB } from './db/mongoClient';
+import { fetchHabits, updateHabit } from "./habitService";
+import { Habit } from "./types";
+import { useToast } from "./components/ui/use-toast";
+import { connectDB } from "./db/mongoClient";
 
-const isHabitCompleted = (habit: Habit, date: string, value?: string): boolean => {
+const isHabitCompleted = (
+  habit: Habit,
+  date: string,
+  value?: string
+): boolean => {
   const checkValue = value !== undefined ? value : habit.entries[date];
   return Boolean(checkValue);
 };
@@ -15,6 +19,11 @@ export default function MITMissionTracker() {
   const [isHabitCompleted, setIsHabitCompleted] = useState<boolean>(false);
   const { toast } = useToast();
 
+  // useEffect to print when the component is mounted
+  useEffect(() => {
+    console.log("MITMissionTracker mounted");
+  }, []);
+
   useEffect(() => {
     const initializeDB = async () => {
       try {
@@ -23,7 +32,7 @@ export default function MITMissionTracker() {
         const data = await fetchHabits();
         setHabits(data);
       } catch (error) {
-        console.error('Error initializing database:', error);
+        console.error("Error initializing database:", error);
         toast({
           title: "Database Error",
           description: "Failed to connect to database. Please try again later.",
@@ -37,16 +46,20 @@ export default function MITMissionTracker() {
     initializeDB();
   }, [toast]);
 
-  const updateHabitProgress = async (habitIndex: number, date: string, value: string) => {
+  const updateHabitProgress = async (
+    habitIndex: number,
+    date: string,
+    value: string
+  ) => {
     try {
       const updatedHabits = [...habits];
       const habit = { ...updatedHabits[habitIndex] };
       const prevValue = habit.entries[date];
-      
+
       // Update entries
       habit.entries = {
         ...habit.entries,
-        [date]: value
+        [date]: value,
       };
 
       // Update streak
@@ -61,7 +74,7 @@ export default function MITMissionTracker() {
       if (updatedHabit) {
         updatedHabits[habitIndex] = updatedHabit;
         setHabits(updatedHabits);
-        
+
         toast({
           title: "Success",
           description: "Habit progress updated successfully",
@@ -69,7 +82,7 @@ export default function MITMissionTracker() {
         });
       }
     } catch (error) {
-      console.error('Error updating habit:', error);
+      console.error("Error updating habit:", error);
       toast({
         title: "Error",
         description: "Failed to update habit. Please try again.",
@@ -92,18 +105,22 @@ export default function MITMissionTracker() {
   return (
     <div className="p-4">
       {habits.map((habit) => (
-        <div key={habit.id} className="mb-4 p-4 border rounded-lg">
+        <div key={habit.id} className="p-4 mb-4 border rounded-lg">
           <h3 className="text-lg font-semibold">{habit.name}</h3>
           <div className="mt-2">
             <input
               type="text"
-              className="border rounded px-2 py-1"
-              onChange={(e) => updateHabitProgress(
-                habits.indexOf(habit),
-                new Date().toISOString().split('T')[0],
-                e.target.value
-              )}
-              value={habit.entries[new Date().toISOString().split('T')[0]] || ''}
+              className="px-2 py-1 border rounded"
+              onChange={(e) =>
+                updateHabitProgress(
+                  habits.indexOf(habit),
+                  new Date().toISOString().split("T")[0],
+                  e.target.value
+                )
+              }
+              value={
+                habit.entries[new Date().toISOString().split("T")[0]] || ""
+              }
             />
           </div>
           <div className="mt-2 text-sm text-gray-600">
@@ -116,7 +133,7 @@ export default function MITMissionTracker() {
       ))}
       <button
         onClick={saveHabits}
-        className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+        className="px-4 py-2 mt-4 text-white bg-blue-500 rounded hover:bg-blue-600"
       >
         Save Habits
       </button>
