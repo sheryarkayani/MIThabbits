@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import axios from "axios";
 import { Card, CardContent, CardFooter } from "../components/ui/card";
 import { useToast } from "../components/ui/use-toast";
 import Header from "../components/Header";
@@ -11,9 +10,7 @@ import OverallProgress from "../components/OverallProgress";
 import Footer from "../components/Footer";
 import { Habit } from "../types";
 import { motivationalQuotes } from "../data";
-
-// Set the base URL for Axios
-axios.defaults.baseURL = "http://localhost:3000"; // Replace with your actual domain
+import { fetchHabits, updateHabit } from "../habitService";
 
 export default function Homepage() {
   const [habits, setHabits] = useState<Habit[]>([]); // Initialize as an empty array
@@ -25,28 +22,20 @@ export default function Homepage() {
 
   // Fetch habits from the API on component mount
   useEffect(() => {
-    const fetchHabits = async () => {
+    const loadHabits = async () => {
       try {
-        const response = await axios.get("/api/habits");
-        console.log("API Response:", response); // Log the full response
-        if (Array.isArray(response.data)) {
-          setHabits(response.data);
-        } else {
-          console.error("Invalid data format:", response.data);
-          setHabits([]); // Fallback to an empty array
-        }
+        const habitsData = await fetchHabits();
+        setHabits(habitsData);
       } catch (error) {
-        console.error("Error fetching habits:", error);
         toast({
           title: "Error",
           description: "Failed to fetch habits. Please try again later.",
           duration: 5000,
         });
-        setHabits([]); // Fallback to an empty array
       }
     };
 
-    fetchHabits();
+    loadHabits();
   }, []);
 
   // Set a random motivational quote when the date changes
@@ -126,13 +115,11 @@ export default function Homepage() {
     }
 
     try {
-      // Save the updated habit to the database
-      const response = await axios.put("/api/habits", habit);
-      updatedHabits[habitIndex] = response.data;
+      const updatedHabit = await updateHabit(habit);
+      updatedHabits[habitIndex] = updatedHabit;
       setHabits(updatedHabits);
       updateLevel();
     } catch (error) {
-      console.error("Error updating habit:", error);
       toast({
         title: "Error",
         description: "Failed to update habit. Please try again.",

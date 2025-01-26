@@ -1,86 +1,64 @@
-import { HabitModel } from './db/mongoClient';
-import { Habit } from './types';
+import axios from "axios";
+import { Habit } from "./types";
 
-// Fetch all habits from MongoDB
+// Set the base URL for Axios
+axios.defaults.baseURL = "http://localhost:3000"; // Replace with your actual domain
+
+/**
+ * Fetch all habits from the API
+ */
 export const fetchHabits = async (): Promise<Habit[]> => {
   try {
-    const habits = await HabitModel.find().lean();
-    return habits.map(habit => ({
-      id: habit._id.toString(),
-      name: habit.name,
-      goal: habit.goal,
-      unit: habit.unit,
-      entries: habit.entries instanceof Map ? 
-        Object.fromEntries(habit.entries) : 
-        (habit.entries || {}),
-      streak: habit.streak || 0,
-      chunks: habit.chunks || undefined
-    }));
-  } catch (error) {
-    console.error('Error fetching habits:', error);
-    throw new Error('Failed to fetch habits from database');
-  }
-};
-
-// Add a new habit to MongoDB
-export const addHabit = async (habit: Habit) => {
-  try {
-    const newHabit = new HabitModel({
-      ...habit,
-      entries: new Map(Object.entries(habit.entries))
-    });
-    const savedHabit = await newHabit.save();
-    return savedHabit;
-  } catch (error) {
-    console.error('Error adding habit:', error);
-    return null;
-  }
-};
-
-// Update habit in MongoDB
-export const updateHabit = async (habit: Habit): Promise<Habit | null> => {
-  try {
-    const updatedHabit = await HabitModel.findByIdAndUpdate(
-      habit.id,
-      {
-        $set: {
-          name: habit.name,
-          goal: habit.goal,
-          unit: habit.unit,
-          entries: habit.entries,
-          streak: habit.streak,
-          chunks: habit.chunks
-        }
-      },
-      { new: true, runValidators: true }
-    );
-    
-    if (!updatedHabit) {
-      throw new Error('Habit not found');
+    const response = await axios.get("/api/habits");
+    if (Array.isArray(response.data)) {
+      return response.data;
+    } else {
+      console.error("Invalid data format:", response.data);
+      return [];
     }
-
-    return {
-      id: updatedHabit._id.toString(),
-      name: updatedHabit.name,
-      goal: updatedHabit.goal,
-      unit: updatedHabit.unit,
-      entries: updatedHabit.entries instanceof Map ? 
-        Object.fromEntries(updatedHabit.entries) : 
-        updatedHabit.entries,
-      streak: updatedHabit.streak,
-      chunks: updatedHabit.chunks
-    };
   } catch (error) {
-    console.error('Error updating habit:', error);
-    throw new Error('Failed to update habit in database');
+    console.error("Error fetching habits:", error);
+    throw new Error("Failed to fetch habits. Please try again later.");
   }
 };
 
-// Delete habit from MongoDB
-export const deleteHabit = async (id: string) => {
+/**
+ * Update a habit in the database
+ * @param habit - The updated habit object
+ */
+export const updateHabit = async (habit: Habit): Promise<Habit> => {
   try {
-    await HabitModel.deleteOne({ id });
+    const response = await axios.put("/api/habits", habit);
+    return response.data;
   } catch (error) {
-    console.error('Error deleting habit:', error);
+    console.error("Error updating habit:", error);
+    throw new Error("Failed to update habit. Please try again.");
+  }
+};
+
+/**
+ * Create a new habit in the database
+ * @param habit - The new habit object
+ */
+export const createHabit = async (habit: Habit): Promise<Habit> => {
+  try {
+    const response = await axios.post("/api/habits", habit);
+    return response.data;
+  } catch (error) {
+    console.error("Error creating habit:", error);
+    throw new Error("Failed to create habit. Please try again.");
+  }
+};
+
+/**
+ * Delete a habit from the database
+ * @param id - The ID of the habit to delete
+ */
+export const deleteHabit = async (id: string): Promise<void> => {
+  try {
+    await axios.delete("/api/habits", { data: { id } });
+  } catch (error) {
+    console.error("Error deleting habit:", error);
+    throw new Error("Failed to delete habit. Please try again.");
   }
 };
