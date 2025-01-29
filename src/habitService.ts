@@ -9,6 +9,7 @@ axios.defaults.baseURL = "http://localhost:3000"; // Replace with your actual do
  */
 export const fetchHabits = async (): Promise<Habit[]> => {
   try {
+    console.log("Fetching habits...");
     const response = await axios.get("/api/habits");
     if (Array.isArray(response.data)) {
       return response.data;
@@ -28,7 +29,10 @@ export const fetchHabits = async (): Promise<Habit[]> => {
  */
 export const updateHabit = async (habit: Habit): Promise<Habit> => {
   try {
-    const response = await axios.put("/api/habits", habit);
+    console.log("Updating habit:", habit);
+    const response = await axios.put(`/api/habits/${habit.id}`, {
+      entries: habit.entries, // Send only updated fields
+    });
     return response.data;
   } catch (error) {
     console.error("Error updating habit:", error);

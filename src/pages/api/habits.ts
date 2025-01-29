@@ -1,6 +1,5 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { connectDB, HabitModel } from "../../db/mongoClient";
-// import { Habit } from "../../types";
 
 // Connect to MongoDB when the API route is called
 connectDB();
@@ -10,17 +9,17 @@ export default async function handler(
   res: NextApiResponse
 ) {
   try {
-    // Handle different HTTP methods
-    switch (req.method) {
+    const { method } = req;
+    const { id } = req.query; // Extract ID from URL parameters
+
+    switch (method) {
       case "GET": {
-        // Fetch all habits
         const habits = await HabitModel.find().lean();
         res.status(200).json(habits);
         break;
       }
 
       case "POST": {
-        // Create a new habit
         const { name, goal, unit, entries, streak, chunks } = req.body;
         const newHabit = new HabitModel({
           name,
@@ -36,8 +35,13 @@ export default async function handler(
       }
 
       case "PUT": {
-        // Update an existing habit
-        const { id, name, goal, unit, entries, streak, chunks } = req.body;
+        console.log("Update habit endpoint hit");
+
+        if (!id || typeof id !== "string") {
+          return res.status(400).json({ error: "Habit ID is required" });
+        }
+
+        const { name, goal, unit, entries, streak, chunks } = req.body;
         const updatedHabit = await HabitModel.findByIdAndUpdate(
           id,
           {
@@ -60,8 +64,10 @@ export default async function handler(
       }
 
       case "DELETE": {
-        // Delete a habit
-        const { id } = req.body;
+        if (!id || typeof id !== "string") {
+          return res.status(400).json({ error: "Habit ID is required" });
+        }
+
         const deletedHabit = await HabitModel.findByIdAndDelete(id);
 
         if (!deletedHabit) {
@@ -73,9 +79,8 @@ export default async function handler(
       }
 
       default: {
-        // Handle unsupported HTTP methods
         res.setHeader("Allow", ["GET", "POST", "PUT", "DELETE"]);
-        res.status(405).json({ error: `Method ${req.method} not allowed` });
+        res.status(405).json({ error: `Method ${method} not allowed` });
       }
     }
   } catch (error) {

@@ -83,41 +83,28 @@ export default function Homepage() {
 
   const dates = getDates();
 
-  // Update habit progress and save to the database
   const updateHabitProgress = async (
     habitIndex: number,
     date: string,
     value: string
   ) => {
-    const updatedHabits = [...habits];
-    const habit = updatedHabits[habitIndex];
-    const prevValue = habit.entries[date];
-    habit.entries[date] = value;
+    setHabits((prevHabits) => {
+      const updatedHabits = [...prevHabits]; // Clone the array
+      const habit = { ...updatedHabits[habitIndex] }; // Clone the specific habit
+      habit.entries = { ...habit.entries, [date]: value }; // Clone and update entries
 
-    // Update streak
-    if (
-      isHabitCompleted(habit, date) &&
-      !isHabitCompleted(habit, date, prevValue)
-    ) {
-      habit.streak++;
-      if (habit.streak % 7 === 0) {
-        toast({
-          title: "Achievement Unlocked!",
-          description: `You've maintained a 7-day streak for ${habit.name}!`,
-          duration: 5000,
-        });
-      }
-    } else if (
-      !isHabitCompleted(habit, date) &&
-      isHabitCompleted(habit, date, prevValue)
-    ) {
-      habit.streak = 0;
-    }
+      updatedHabits[habitIndex] = habit; // Replace with the updated habit
+
+      return updatedHabits; // Return new array to trigger re-render
+    });
 
     try {
-      const updatedHabit = await updateHabit(habit);
-      updatedHabits[habitIndex] = updatedHabit;
-      setHabits(updatedHabits);
+      const updatedHabit = await updateHabit(habits[habitIndex]); // Send updated habit to API
+      setHabits((prevHabits) => {
+        const updatedHabits = [...prevHabits];
+        updatedHabits[habitIndex] = updatedHabit;
+        return updatedHabits;
+      });
       updateLevel();
     } catch (error) {
       toast({
@@ -190,8 +177,8 @@ export default function Homepage() {
   };
 
   return (
-    <div className="min-h-screen p-4 text-white bg-gradient-to-b from-gray-900 to-red-900">
-      <Card className="w-full max-w-4xl mx-auto bg-gray-800 border-gray-700">
+    <div className="p-4 min-h-screen text-white bg-gradient-to-b from-gray-900 to-red-900">
+      <Card className="mx-auto w-full max-w-4xl bg-gray-800 border-gray-700">
         <Header />
         <div className="p-4">
           <CardContent>
